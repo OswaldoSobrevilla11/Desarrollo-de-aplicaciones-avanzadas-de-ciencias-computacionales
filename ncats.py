@@ -32,22 +32,32 @@ class NeuralNetwork:
         # Xavier initialization for weights
         self.w1 = he_init((input_size, hidden_size))
         self.b1 = np.zeros((1, hidden_size))
+        print('W=',self.w1.shape)
+        print('b=',self.b1.shape)
+  
         self.w2 = he_init((hidden_size, output_size))
         self.b2 = np.zeros((1, output_size))
+        print('W=',self.w2.shape)
+        print('b=',self.b2.shape)
         
         self.learning_rate = learning_rate
 
     def forward(self, x):
         # First layer
+        print('forward')
+
         self.z1 = np.dot(x, self.w1) + self.b1
         self.a1 = relu(self.z1)
-        
+        print(self.a1.shape)
+
         # Second layer
         self.z2 = np.dot(self.a1, self.w2) + self.b2
         self.a2 = sigmoid(self.z2)
+        print(self.a2.shape)
         return self.a2
-
+         
     def compute_loss(self, y_true, y_pred):
+        # https://numpy.org/doc/2.3/reference/generated/numpy.clip.html
         y_pred = np.clip(y_pred, 1e-8, 1 - 1e-8)  # To prevent log(0)
         return -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
 
@@ -89,13 +99,37 @@ class NeuralNetwork:
 
     def train(self, x_train, y_train, epochs, batch_size=10):
         for epoch in range(epochs):
+            print ('epoch = ', epoch)
+
             for i in range(0, x_train.shape[0], batch_size):
+                print('----')
+                print (i)
+                #print (batch_size)
+
                 x_batch = x_train[i:i + batch_size]
                 y_batch = y_train[i:i + batch_size]
 
+                print(x_batch.shape)
+                print(x_batch)
+                print(y_batch.shape)
+                print(y_batch)
+
                 y_pred = self.forward(x_batch)
+                print ('prediction=', y_pred)
+
                 loss = self.compute_loss(y_batch, y_pred)
+                print ('loss=', loss)
                 gradients = self.backward(x_batch, y_batch)
+
+                print('gradients=')
+                print('W1 = ',gradients[0].shape)
+                print('b1 = ',gradients[1].shape)
+                print('b1 = ',gradients[1])
+                print('W2 = ',gradients[2].shape)
+                print('b2 = ',gradients[3].shape)
+                print('b2 = ',gradients[3])
+
+                #dz1_dw1, dz1_db1, dz2_dw2, dz2_db2
                 self.update_params_sgd(*gradients)
 
             print(f'Epoch {epoch + 1}, Loss: {loss:.4f}')
@@ -103,18 +137,40 @@ class NeuralNetwork:
             print(f'Accuracy: {accuracy:.2f}')
 
 # Load and preprocess the data
-train_data_flattened = np.loadtxt('dataset/train_images.csv', delimiter=',')  # (209,12288)
-train_labels = np.loadtxt('dataset/train_labels.csv', delimiter=',')  # (209,)
+# https://numpy.org/doc/1.19/reference/generated/numpy.loadtxt.html
 
-test_data_flattened = np.loadtxt('dataset/test_images.csv', delimiter=',')  # (50,12288)
-test_labels = np.loadtxt('dataset/test_labels.csv', delimiter=',')  # (50,)
+train_data_flattened = np.loadtxt('dataset/train/train_images.csv', delimiter=',')  # (209,12288)
+train_labels = np.loadtxt('dataset/train/train_labels.csv', delimiter=',')  # (209,)
+
+test_data_flattened = np.loadtxt('dataset/test/test_images.csv', delimiter=',')  # (50,12288)
+test_labels = np.loadtxt('dataset/test/test_labels.csv', delimiter=',')  # (50,)
+
+#print(train_data_flattened.shape)
+#for i in range(0, 12288):
+#  print(" ", test_data_flattened[0][i], end="")
+
+#print(test_labels)
 
 # Normalize the data
+# Dividing an image by 255 is a common method to normalize pixel values to the range [0, 1] in Python, particularly when working with image data for machine learning models.
+# This operation is typically applied to images stored as integers (e.g., uint8) to convert them into floating-point values suitable for processing. For example, a function might perform this normalization as images = images / 255.
+# This approach is widely used and is often referred to as "divide_255" normalization.
+# The resulting normalized images have pixel intensities scaled proportionally from the original 0-255 range down to 0.0-1.0.
+# This normalization is essential for ensuring consistent input to neural networks and other algorithms that expect data within a specific range.
+
 train_data = train_data_flattened / 255.0
 test_data = test_data_flattened / 255.0
 
+# print(train_data.shape)
+#for i in range(0, 12288):
+#  print(" ", test_data[0][i], end="")
+
+
 # Define the neural network parameters
 input_size = train_data.shape[1]
+#print(train_data.shape)
+print(input_size)
+
 hidden_size = 128
 output_size = 1
 
@@ -126,23 +182,8 @@ nn.train(train_data, train_labels, epochs=200, batch_size=10)
 
 # predict
 predictions = nn.predict(test_data)
-print(predictions.reshape(1, 50))
-#print(test_labels)
-
-test_data_img = test_data.reshape(50, 64, 64, 3)
-
-plt.imsave("cat40.png", test_data_img[40])
-plt.imsave("cat41.png", test_data_img[41])
-plt.imsave("cat42.png", test_data_img[42])
-plt.imsave("cat43.png", test_data_img[43])
-plt.imsave("cat44.png", test_data_img[44])
-plt.imsave("cat45.png", test_data_img[45])
-plt.imsave("cat46.png", test_data_img[46])
-plt.imsave("cat47.png", test_data_img[47])
-plt.imsave("cat48.png", test_data_img[48])
-plt.imsave("cat49.png", test_data_img[49])
-
+print(predictions)
 # Test the model
-#accuracy = nn.test_accuracy(test_data, test_labels)
-#print(f'Test Accuracy: {accuracy * 100:.2f}%')
+accuracy = nn.test_accuracy(test_data, test_labels)
+print(f'Test Accuracy: {accuracy * 100:.2f}%')
 
